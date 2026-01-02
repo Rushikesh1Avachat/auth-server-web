@@ -80,6 +80,8 @@ exports.registerController = async (req, res, next) => {
       role: role,
       phone,
     });
+    console.log(savedData, "saved Data");
+    
 
     // sending Mail
     const verificationOTP = await sendVerificationMail(savedData);
@@ -97,6 +99,12 @@ exports.registerController = async (req, res, next) => {
       data: updatedData,
       message: 'User Register Successfully',
     });
+    console.log({
+      error: false,
+      data: updatedData,
+      message: 'User Register Successfully',
+    });
+    
   } catch (error) {
     next(error);
   }
