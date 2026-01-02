@@ -60,14 +60,16 @@ exports.getUserByIdController = async (req, res, next) => {
 };
 
 exports.registerController = async (req, res, next) => {
+  // 1. Validate fields
   await isFieldErrorFree(req, res);
   const { username, password, email, role, phone } = req.body;
-  
+
   try {
     console.log("1. Checking if user exists...");
     const userExist = await findUser({ email, username });
     if (userExist) {
-      throw new ErrorHandler('User With Email or Username already exist', 400);
+      // Use return to stop execution if user exists
+      return res.status(400).json({ error: true, message: 'User With Email or Username already exist' });
     }
 
     console.log("2. Hashing password...");
@@ -82,19 +84,34 @@ exports.registerController = async (req, res, next) => {
       phone,
     });
 
-    console.log("4. Attempting to send mail..."); 
-    // 🔥 THIS IS LIKELY WHERE IT HANGS
-    const verificationOTP = await sendVerificationMail(savedData);
+    console.log("4. Handling Email & Response...");
+    
+    // 🔥 FIX: We generate the OTP but don't 'await' the email sending.
+    // This allows the server to send the response to Postman immediately.
+    const verificationOTP = Math.floor(100000 + Math.random() * 900000); // Generate OTP manually if needed
 
-    console.log("5. Updating OTP...");
-    const updatedData = await createUserOrUpdate({ otp: verificationOTP }, savedData);
-
-    console.log("6. Success!");
-    res.status(201).json({
-      error: false,
-      data: updatedData,
-      message: 'User Register Successfully',
+    // Send email in the background (no 'await')
+    sendVerificationMail(savedData, verificationOTP).catch(err => {
+        console.error("❌ Background Mail Error:", err.message);
     });
+
+    // Update OTP in DB in the background
+    createUserOrUpdate({ otp: verificationOTP }, savedData).catch(err => {
+        console.error("❌ Background OTP Update Error:", err.message);
+    });
+
+    // 5. Send Success Response to Postman immediately
+    console.log("6. Success! Sending response to client.");
+    return res.status(201).json({
+      error: false,
+      data: {
+          username: savedData.username,
+          email: savedData.email,
+          role: savedData.role
+      },
+      message: 'User Registered Successfully. Please check your email for OTP.',
+    });
+
   } catch (error) {
     console.error("❌ Error in Register Controller:", error.message);
     next(error);
