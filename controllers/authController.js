@@ -60,61 +60,44 @@ exports.getUserByIdController = async (req, res, next) => {
 };
 
 exports.registerController = async (req, res, next) => {
-  // 1. Data sanitization and validation
+  // data sanitization aginst site script XSS and validate
   await isFieldErrorFree(req, res);
   const { username, password, email, role, phone } = req.body;
-
   try {
-    console.log("Step 1: Checking if user already exists...");
+    // Service Function to find data from email or username
     const userExist = await findUser({ email, username });
     if (userExist) {
-      console.log("❌ Conflict: User already exists.");
-      return res.status(400).json({ 
-        error: true, 
-        message: 'User With Email or Username already exist' 
-      });
+      throw new ErrorHandler('User With Email or Username already exist', 400);
     }
-
-    console.log("Step 2: Hashing password...");
+    // hash password
     const hashedPassword = await hashPassword(password);
 
-    console.log("Step 3: Creating user in MongoDB...");
+    // Store User
     const savedData = await createUserOrUpdate({
       username,
       password: hashedPassword,
       email,
-      role: role || 'user',
+      role: role,
       phone,
     });
 
-    console.log("Step 4: Starting background mail and OTP update...");
-    // 🔥 Background logic: We don't 'await' so Postman finishes in ~1.5s
-    sendVerificationMail(savedData)
-      .then(async (verificationOTP) => {
-        console.log(`✅ Mail sent successfully. OTP: ${verificationOTP}`);
-        // Background update for the user record with the OTP
-        await createUserOrUpdate({ otp: verificationOTP }, savedData);
-        console.log("✅ Database updated with OTP in background.");
-      })
-      .catch(err => {
-        console.error("❌ Background Mail Error:", err.message);
-      });
+    // sending Mail
+    const verificationOTP = await sendVerificationMail(savedData);
 
-    // Step 5: Send success response immediately (Matching Dipesh's screenshot)
-    console.log("Step 5: Sending 201 Created response to Postman.");
+    // Updating Otp in the existing user
+    const updatedData = await createUserOrUpdate(
+      {
+        otp: verificationOTP,
+      },
+      savedData
+    );
+
     res.status(201).json({
       error: false,
-      data: {
-        username: savedData.username,
-        email: savedData.email,
-        role: savedData.role,
-        _id: savedData._id
-      },
-      message: 'User Registered Successfully. Please check your email for OTP.',
+      data: updatedData,
+      message: 'User Register Successfully',
     });
-
   } catch (error) {
-    console.error("❌ Controller Error:", error.message);
     next(error);
   }
 };
