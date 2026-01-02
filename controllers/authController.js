@@ -60,48 +60,46 @@ exports.getUserByIdController = async (req, res, next) => {
 };
 
 exports.registerController = async (req, res, next) => {
-  // data sanitization aginst site script XSS and validate
   await isFieldErrorFree(req, res);
   const { username, password, email, role, phone } = req.body;
+  
   try {
-    // Service Function to find data from email or username
+    console.log("1. Checking if user exists...");
     const userExist = await findUser({ email, username });
     if (userExist) {
       throw new ErrorHandler('User With Email or Username already exist', 400);
     }
-    // hash password
+
+    console.log("2. Hashing password...");
     const hashedPassword = await hashPassword(password);
 
-    // Store User
+    console.log("3. Creating user in DB...");
     const savedData = await createUserOrUpdate({
       username,
       password: hashedPassword,
       email,
-      role: role,
+      role,
       phone,
     });
 
-    // sending Mail
+    console.log("4. Attempting to send mail..."); 
+    // 🔥 THIS IS LIKELY WHERE IT HANGS
     const verificationOTP = await sendVerificationMail(savedData);
 
-    // Updating Otp in the existing user
-    const updatedData = await createUserOrUpdate(
-      {
-        otp: verificationOTP,
-      },
-      savedData
-    );
+    console.log("5. Updating OTP...");
+    const updatedData = await createUserOrUpdate({ otp: verificationOTP }, savedData);
 
+    console.log("6. Success!");
     res.status(201).json({
       error: false,
       data: updatedData,
       message: 'User Register Successfully',
     });
   } catch (error) {
+    console.error("❌ Error in Register Controller:", error.message);
     next(error);
   }
 };
-
 exports.loginController = async (req, res, next) => {
   const { username, password, email } = req.body;
   try {
