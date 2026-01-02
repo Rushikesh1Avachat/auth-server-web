@@ -1,10 +1,9 @@
 const { default: mongoose } = require("mongoose");
 
-// ❌ DO NOT fallback to localhost on Render
-const dbUrl = process.env.DB_URL;
-
 exports.dbConnect = async () => {
   try {
+    const dbUrl = process.env.DB_URL; // ✅ read at runtime
+
     if (!dbUrl) {
       throw new Error("DB_URL is not defined");
     }
@@ -17,3 +16,4 @@ exports.dbConnect = async () => {
     process.exit(1); // 🔥 REQUIRED for Render
   }
 };
+
