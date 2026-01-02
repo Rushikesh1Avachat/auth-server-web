@@ -60,7 +60,7 @@ exports.getUserByIdController = async (req, res, next) => {
 };
 
 exports.registerController = async (req, res, next) => {
-  // 1. Validate fields (Data sanitization)
+  // 1. Validate fields
   await isFieldErrorFree(req, res);
   const { username, password, email, role, phone } = req.body;
 
@@ -68,7 +68,6 @@ exports.registerController = async (req, res, next) => {
     // 2. Check if user exists
     const userExist = await findUser({ email, username });
     if (userExist) {
-      // Use return to stop execution immediately
       return res.status(400).json({
         error: true,
         message: 'User With Email or Username already exist'
@@ -78,46 +77,45 @@ exports.registerController = async (req, res, next) => {
     // 3. Hash password
     const hashedPassword = await hashPassword(password);
 
-    // 4. Store User (Initial Creation)
+    // 4. Generate OTP and Send Mail FIRST
+    // We call this before creating the user so we have the OTP ready for the response
+    const verificationOTP = await sendVerificationMail({ email, username });
+
+    // 5. Store User with the generated OTP
     const savedData = await createUserOrUpdate({
       username,
       password: hashedPassword,
       email,
       role: role || 'user',
       phone,
+      otp: verificationOTP, // Storing the OTP here
     });
 
-    console.log("User saved to DB. Starting background email...");
-
-    // 5. Background Email Process (Non-blocking to prevent Timeout)
-    sendVerificationMail(savedData)
-      .then(async (verificationOTP) => {
-        // Update the OTP in the background once the mail is sent
-        await createUserOrUpdate({ otp: verificationOTP }, savedData);
-        console.log("OTP updated in background for:", email);
-      })
-      .catch((mailError) => {
-        console.error("Mail Service Error (Background):", mailError.message);
-      });
-
-    // 6. Immediate Response to Postman (Matches Dipesh's UI)
+    // 6. Response to Postman including the OTP
     return res.status(201).json({
       error: false,
       data: {
-        _id: savedData._id,
         username: savedData.username,
         email: savedData.email,
-        role: savedData.role,
+        password: savedData.password, // Only if your tutorial requires showing hashed pass
         phone: savedData.phone,
+        phone_verified: false,
         email_verified: false,
-        phone_verified: false
+        role: savedData.role,
+        _id: savedData._id,
+        __v: 0,
+        otp: savedData.otp // <--- This matches the tutorial UI in your screenshots
       },
-      message: 'User Register Successfully',
+      message: 'User Registered Successfully. Please check your email for OTP.',
     });
 
   } catch (error) {
-    console.error("Register Controller Crash:", error.message);
-    next(error);
+    console.error("Register Controller Error:", error.message);
+    // If mail service fails, the whole registration fails to keep data consistent
+    res.status(500).json({
+      error: true,
+      message: "Registration failed: " + error.message
+    });
   }
 };
 // exports.registerController = async (req, res, next) => {
