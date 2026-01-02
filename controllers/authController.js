@@ -59,103 +59,103 @@ exports.getUserByIdController = async (req, res, next) => {
   }
 };
 
-// exports.registerController = async (req, res, next) => {
-//   // data sanitization aginst site script XSS and validate
-//   await isFieldErrorFree(req, res);
-//   const { username, password, email, role, phone } = req.body;
-//   try {
-//     // Service Function to find data from email or username
-//     const userExist = await findUser({ email, username });
-//     if (userExist) {
-//       throw new ErrorHandler('User With Email or Username already exist', 400);
-//     }
-//     // hash password
-//     const hashedPassword = await hashPassword(password);
-
-//     // Store User
-//     const savedData = await createUserOrUpdate({
-//       username,
-//       password: hashedPassword,
-//       email,
-//       role: role,
-//       phone,
-//     });
-
-//     // sending Mail
-//     const verificationOTP = await sendVerificationMail(savedData);
-
-//     // Updating Otp in the existing user
-//     const updatedData = await createUserOrUpdate(
-//       {
-//         otp: verificationOTP,
-//       },
-//       savedData
-//     );
-
-//     res.status(201).json({
-//       error: false,
-//       data: updatedData,
-//       message: 'User Register Successfully',
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
 exports.registerController = async (req, res, next) => {
-  // 1. Data sanitization and validation
+  // data sanitization aginst site script XSS and validate
   await isFieldErrorFree(req, res);
   const { username, password, email, role, phone } = req.body;
-
   try {
-    console.log("Step 1: Checking if user exists in MongoDB...");
+    // Service Function to find data from email or username
     const userExist = await findUser({ email, username });
     if (userExist) {
-      console.log("❌ Conflict: User already exists.");
-      return res.status(400).json({ 
-        error: true, 
-        message: 'User With Email or Username already exist' 
-      });
+      throw new ErrorHandler('User With Email or Username already exist', 400);
     }
-
-    console.log("Step 2: Hashing the password...");
+    // hash password
     const hashedPassword = await hashPassword(password);
 
-    console.log("Step 3: Storing user data in database...");
+    // Store User
     const savedData = await createUserOrUpdate({
       username,
       password: hashedPassword,
       email,
-      role: role || 'user',
+      role: role,
       phone,
     });
 
-    console.log("Step 4: Initiating background email & OTP process...");
-    // We don't 'await' the mail here to prevent Postman timeouts
-    sendVerificationMail(savedData)
-      .then(async (verificationOTP) => {
-        console.log("Step 5: Email sent! Updating OTP in DB...");
-        await createUserOrUpdate({ otp: verificationOTP }, savedData);
-        console.log("✅ Background process complete.");
-      })
-      .catch(err => console.error("❌ Background Mail Error:", err.message));
+    // sending Mail
+    const verificationOTP = await sendVerificationMail(savedData);
 
-    // 6. Send immediate success response like Dipesh
-    console.log("Step 6: Sending success response to Postman.");
+    // Updating Otp in the existing user
+    const updatedData = await createUserOrUpdate(
+      {
+        otp: verificationOTP,
+      },
+      savedData
+    );
+
     res.status(201).json({
       error: false,
-      data: {
-        username: savedData.username,
-        email: savedData.email,
-        role: savedData.role
-      },
-      message: 'User Registered Successfully. Please check your email for OTP.',
+      data: updatedData,
+      message: 'User Register Successfully',
     });
-
   } catch (error) {
-    console.error("❌ Controller Error:", error.message);
     next(error);
   }
 };
+// exports.registerController = async (req, res, next) => {
+//   // 1. Data sanitization and validation
+//   await isFieldErrorFree(req, res);
+//   const { username, password, email, role, phone } = req.body;
+
+//   try {
+//     console.log("Step 1: Checking if user exists in MongoDB...");
+//     const userExist = await findUser({ email, username });
+//     if (userExist) {
+//       console.log("❌ Conflict: User already exists.");
+//       return res.status(400).json({ 
+//         error: true, 
+//         message: 'User With Email or Username already exist' 
+//       });
+//     }
+
+//     console.log("Step 2: Hashing the password...");
+//     const hashedPassword = await hashPassword(password);
+
+//     console.log("Step 3: Storing user data in database...");
+//     const savedData = await createUserOrUpdate({
+//       username,
+//       password: hashedPassword,
+//       email,
+//       role: role || 'user',
+//       phone,
+//     });
+
+//     console.log("Step 4: Initiating background email & OTP process...");
+//     // We don't 'await' the mail here to prevent Postman timeouts
+//     sendVerificationMail(savedData)
+//       .then(async (verificationOTP) => {
+//         console.log("Step 5: Email sent! Updating OTP in DB...");
+//         await createUserOrUpdate({ otp: verificationOTP }, savedData);
+//         console.log("✅ Background process complete.");
+//       })
+//       .catch(err => console.error("❌ Background Mail Error:", err.message));
+
+//     // 6. Send immediate success response like Dipesh
+//     console.log("Step 6: Sending success response to Postman.");
+//     res.status(201).json({
+//       error: false,
+//       data: {
+//         username: savedData.username,
+//         email: savedData.email,
+//         role: savedData.role
+//       },
+//       message: 'User Registered Successfully. Please check your email for OTP.',
+//     });
+
+//   } catch (error) {
+//     console.error("❌ Controller Error:", error.message);
+//     next(error);
+//   }
+// };
 exports.loginController = async (req, res, next) => {
   const { username, password, email } = req.body;
   try {
