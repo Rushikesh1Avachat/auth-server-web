@@ -60,22 +60,25 @@ exports.getUserByIdController = async (req, res, next) => {
 };
 
 exports.registerController = async (req, res, next) => {
-  // 1. Data sanitization and validation
+  // 1. Validate fields (Data sanitization)
   await isFieldErrorFree(req, res);
   const { username, password, email, role, phone } = req.body;
 
   try {
-    console.log("Step 1: Checking if user exists...");
+    // 2. Check if user exists
     const userExist = await findUser({ email, username });
     if (userExist) {
-      console.log("❌ Conflict: User already exists.");
-      return res.status(400).json({ error: true, message: 'User With Email or Username already exist' });
+      // Use return to stop execution immediately
+      return res.status(400).json({
+        error: true,
+        message: 'User With Email or Username already exist'
+      });
     }
 
-    console.log("Step 2: Hashing password...");
+    // 3. Hash password
     const hashedPassword = await hashPassword(password);
 
-    console.log("Step 3: Saving user to MongoDB...");
+    // 4. Store User (Initial Creation)
     const savedData = await createUserOrUpdate({
       username,
       password: hashedPassword,
@@ -84,20 +87,21 @@ exports.registerController = async (req, res, next) => {
       phone,
     });
 
-    console.log("Step 4: Starting background mail process...");
-    // 🔥 NON-BLOCKING: No 'await' here ensures Postman doesn't time out
+    console.log("User saved to DB. Starting background email...");
+
+    // 5. Background Email Process (Non-blocking to prevent Timeout)
     sendVerificationMail(savedData)
       .then(async (verificationOTP) => {
-        console.log(`✅ Mail sent! OTP: ${verificationOTP}`);
-        // Update OTP in background
+        // Update the OTP in the background once the mail is sent
         await createUserOrUpdate({ otp: verificationOTP }, savedData);
-        console.log("✅ DB updated with OTP.");
+        console.log("OTP updated in background for:", email);
       })
-      .catch(err => console.error("❌ Background Mail Error:", err.message));
+      .catch((mailError) => {
+        console.error("Mail Service Error (Background):", mailError.message);
+      });
 
-    // 5. Send immediate success response like Dipesh
-    console.log("Step 5: Sending response to Postman.");
-    res.status(201).json({
+    // 6. Immediate Response to Postman (Matches Dipesh's UI)
+    return res.status(201).json({
       error: false,
       data: {
         _id: savedData._id,
@@ -106,14 +110,13 @@ exports.registerController = async (req, res, next) => {
         role: savedData.role,
         phone: savedData.phone,
         email_verified: false,
-        phone_verified: false,
-        __v: 0
+        phone_verified: false
       },
-      message: 'User Registered Successfully. Please check your email for OTP.',
+      message: 'User Register Successfully',
     });
 
   } catch (error) {
-    console.error("❌ Controller Error:", error.message);
+    console.error("Register Controller Crash:", error.message);
     next(error);
   }
 };
