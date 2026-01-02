@@ -60,52 +60,60 @@ exports.getUserByIdController = async (req, res, next) => {
 };
 
 exports.registerController = async (req, res, next) => {
-  // data sanitization aginst site script XSS and validate
+  // 1. Data sanitization and validation
   await isFieldErrorFree(req, res);
   const { username, password, email, role, phone } = req.body;
+
   try {
-    // Service Function to find data from email or username
+    console.log("Step 1: Checking if user exists...");
     const userExist = await findUser({ email, username });
     if (userExist) {
-      throw new ErrorHandler('User With Email or Username already exist', 400);
+      console.log("❌ Conflict: User already exists.");
+      return res.status(400).json({ error: true, message: 'User With Email or Username already exist' });
     }
-    // hash password
+
+    console.log("Step 2: Hashing password...");
     const hashedPassword = await hashPassword(password);
 
-    // Store User
+    console.log("Step 3: Saving user to MongoDB...");
     const savedData = await createUserOrUpdate({
       username,
       password: hashedPassword,
       email,
-      role: role,
+      role: role || 'user',
       phone,
     });
-    console.log(savedData, "saved Data");
-    
 
-    // sending Mail
-    const verificationOTP = await sendVerificationMail(savedData);
+    console.log("Step 4: Starting background mail process...");
+    // 🔥 NON-BLOCKING: No 'await' here ensures Postman doesn't time out
+    sendVerificationMail(savedData)
+      .then(async (verificationOTP) => {
+        console.log(`✅ Mail sent! OTP: ${verificationOTP}`);
+        // Update OTP in background
+        await createUserOrUpdate({ otp: verificationOTP }, savedData);
+        console.log("✅ DB updated with OTP.");
+      })
+      .catch(err => console.error("❌ Background Mail Error:", err.message));
 
-    // Updating Otp in the existing user
-    const updatedData = await createUserOrUpdate(
-      {
-        otp: verificationOTP,
-      },
-      savedData
-    );
-
+    // 5. Send immediate success response like Dipesh
+    console.log("Step 5: Sending response to Postman.");
     res.status(201).json({
       error: false,
-      data: updatedData,
-      message: 'User Register Successfully',
+      data: {
+        _id: savedData._id,
+        username: savedData.username,
+        email: savedData.email,
+        role: savedData.role,
+        phone: savedData.phone,
+        email_verified: false,
+        phone_verified: false,
+        __v: 0
+      },
+      message: 'User Registered Successfully. Please check your email for OTP.',
     });
-    console.log({
-      error: false,
-      data: updatedData,
-      message: 'User Register Successfully',
-    });
-    
+
   } catch (error) {
+    console.error("❌ Controller Error:", error.message);
     next(error);
   }
 };
