@@ -1,22 +1,22 @@
+const express = require('express');
 const { authRoutes } = require('../routes');
 const helmet = require('helmet');
 const errorHandler = require('../middlewares/errorMiddleare');
-var cookieParser = require('cookie-parser');
-const express = require('express');
+const cookieParser = require('cookie-parser');
 
 exports.appConfig = (app) => {
-  const port = process.env.PORT || 5500;
   app.use(helmet());
   app.use(cookieParser());
   app.use(express.json());
+
+  // Mount routes
   app.use('/api/auth', authRoutes);
 
+  // Test route
   app.get('/', (req, res) => {
-    res.send('Helo Code with Dipesh');
+    res.send('Hello Code with Dipesh');
   });
-  app.use(errorHandler);
 
-  app.listen(port, () => {
-    console.log(`App Listening on port ${port}`);
-  });
+  // Error handler
+  app.use(errorHandler);
 };
