@@ -1,7 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 var cors = require('cors');
-const dbConnect = require("./config/Database");
+const { dbConnect } = require("./config/Database"); // ✅ NAMED IMPORT
+
 const { appConfig } = require('./config/AppConfig');
 
 const startServer = async () => {
