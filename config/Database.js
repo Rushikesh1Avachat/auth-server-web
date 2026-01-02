@@ -1,6 +1,7 @@
 const { default: mongoose } = require("mongoose");
 
-const dbUrl = process.env.DB_URL; // ❌ remove localhost for production
+// ❌ DO NOT fallback to localhost on Render
+const dbUrl = process.env.DB_URL;
 
 exports.dbConnect = async () => {
   try {
@@ -9,9 +10,10 @@ exports.dbConnect = async () => {
     }
 
     await mongoose.connect(dbUrl);
+
     console.log("✅ Connected to MongoDB");
   } catch (error) {
-    console.error("❌ MongoDB Connection Error:", error.message);
-    process.exit(1); // 🔥 stop app if DB fails
+    console.log("❌ MongoDB Connection Error:", error.message);
+    process.exit(1); // 🔥 REQUIRED for Render
   }
 };
