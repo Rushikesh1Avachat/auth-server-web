@@ -9,14 +9,11 @@ exports.appConfig = (app) => {
   app.use(cookieParser());
   app.use(express.json());
 
-  // Mount routes
   app.use('/api/auth', authRoutes);
 
-  // Test route
   app.get('/', (req, res) => {
-    res.send('Hello Code with Dipesh');
+    res.send('Hello Code with Rushikesh');
   });
 
-  // Error handler
   app.use(errorHandler);
 };
