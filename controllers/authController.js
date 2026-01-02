@@ -60,62 +60,45 @@ exports.getUserByIdController = async (req, res, next) => {
 };
 
 exports.registerController = async (req, res, next) => {
-  // 1. Validate fields
+  // data sanitization aginst site script XSS and validate
   await isFieldErrorFree(req, res);
   const { username, password, email, role, phone } = req.body;
-
   try {
-    // 2. Check if user exists
+    // Service Function to find data from email or username
     const userExist = await findUser({ email, username });
     if (userExist) {
-      return res.status(400).json({
-        error: true,
-        message: 'User With Email or Username already exist'
-      });
+      throw new ErrorHandler('User With Email or Username already exist', 400);
     }
-
-    // 3. Hash password
+    // hash password
     const hashedPassword = await hashPassword(password);
 
-    // 4. Generate OTP and Send Mail FIRST
-    // We call this before creating the user so we have the OTP ready for the response
-    const verificationOTP = await sendVerificationMail({ email, username });
-
-    // 5. Store User with the generated OTP
+    // Store User
     const savedData = await createUserOrUpdate({
       username,
       password: hashedPassword,
       email,
-      role: role || 'user',
+      role: role,
       phone,
-      otp: verificationOTP, // Storing the OTP here
     });
 
-    // 6. Response to Postman including the OTP
-    return res.status(201).json({
-      error: false,
-      data: {
-        username: savedData.username,
-        email: savedData.email,
-        password: savedData.password, // Only if your tutorial requires showing hashed pass
-        phone: savedData.phone,
-        phone_verified: false,
-        email_verified: false,
-        role: savedData.role,
-        _id: savedData._id,
-        __v: 0,
-        otp: savedData.otp // <--- This matches the tutorial UI in your screenshots
+    // sending Mail
+    const verificationOTP = await sendVerificationMail(savedData);
+
+    // Updating Otp in the existing user
+    const updatedData = await createUserOrUpdate(
+      {
+        otp: verificationOTP,
       },
-      message: 'User Registered Successfully. Please check your email for OTP.',
-    });
+      savedData
+    );
 
-  } catch (error) {
-    console.error("Register Controller Error:", error.message);
-    // If mail service fails, the whole registration fails to keep data consistent
-    res.status(500).json({
-      error: true,
-      message: "Registration failed: " + error.message
+    res.status(201).json({
+      error: false,
+      data: updatedData,
+      message: 'User Register Successfully',
     });
+  } catch (error) {
+    next(error);
   }
 };
 // exports.registerController = async (req, res, next) => {
