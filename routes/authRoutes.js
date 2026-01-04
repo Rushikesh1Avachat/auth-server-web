@@ -46,7 +46,7 @@ router.post('/register', validateRegistrationRules, registerController);
 
 // Register API
 
-router.post('/login', loginLimiter, loginController);
+router.post('/login',  loginController);
 
 // Eamil Verication API
 router.post('/mail-verification', verifyMailController);
@@ -57,10 +57,7 @@ router.post('/forget-password', forgetPasswordController);
 // Reset Password API
 router.post('/reset-password', authenticatedRoutes, resetPasswordController);
 
-// To get the user profile
 router.post('/get-phone-otp', sendOtpController);
-
-// To verify the phone Number
 router.post('/verify-phone', verifyOtpController);
 
 router.post('/logout', authenticatedRoutes, logoutController);
@@ -69,4 +66,3 @@ router.post('/logout', authenticatedRoutes, logoutController);
 router.post('/refresh-token', refreshTokenController);
 
 module.exports = router;
-

@@ -7,15 +7,13 @@ const client = new twilio(
 );
 
 async function sendOTPVerification(phone) {
-  const otp = generateOTP();
-
+  let verificationOTP = await generateOTP();
   await client.messages.create({
-    body: `Your OTP is ${otp}`,
+    body: `Your verification code is ${verificationOTP}`,
     from: process.env.TWILIO_PHONE,
     to: phone,
   });
-
-  return otp;
+  return verificationOTP;
 }
 
 module.exports = {
