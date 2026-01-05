@@ -11,7 +11,7 @@ const startServer = async () => {
   const corsOptions = {
      origin: [
       "http://localhost:5173",
-      "https://auth-frontend-main-6jtn-a47k61tb4.vercel.app",
+      "https://auth-frontend-main-gwe4.vercel.app",
     ],
     credentials: true, // Allow credentials (cookies)
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
