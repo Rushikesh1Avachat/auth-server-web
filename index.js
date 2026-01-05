@@ -29,12 +29,12 @@ const startServer = async () => {
   app.options('*', cors(corsOptions));
 
   await dbConnect();
-  await appConfig(app);
+  appConfig(app);
 
-  // const PORT = process.env.PORT || 5500;
-  // app.listen(PORT, () =>
-  //   console.log(`🚀 Server running on port ${PORT}`)
-  // );
+  const PORT = process.env.PORT || 5500;
+  app.listen(PORT, () =>
+    console.log(`🚀 Server running on port ${PORT}`)
+  );
 };
 
 startServer();
