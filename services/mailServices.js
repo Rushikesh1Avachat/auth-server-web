@@ -1,38 +1,72 @@
 const { transporter } = require('../utils/mailHandler');
 const { generateOTP } = require('../utils/generateOtp');
-const { generateTokens } = require('../utils/authHandler');
+
+const otpStore = {}; // { userid/email: { otp, expiresAt } }
+
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 async function sendVerificationMail(user) {
-  let verificationOTP = await generateOTP();
-  // Send verification mail
-  const varificationLink = `http://localhost:5173/verify-otp?userid=${user?._id}`;
-  // verificatio email
+  const verificationOTP = generateOTP();
+  otpStore[user._id] = {
+    otp: verificationOTP,
+    expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+  };
+
+  const verificationLink = `${FRONTEND_URL}/verify-otp?userid=${user._id}`;
+
   const mailOptions = {
     from: process.env.EMAIL_USER,
-    to: user?.email,
+    to: user.email,
     subject: 'Welcome to Code with Dipesh',
-    html: `<p>welcome to code with dipesh, your account has been created with email: ${user?.email}<p><b>please verify the email using the OTP ${verificationOTP} by clicking this</b><a href="${varificationLink}">verify</a>`,
+    html: `
+      <p>Welcome to Code with Dipesh!</p>
+      <p>Your account has been created with email: <b>${user.email}</b></p>
+      <p>Please verify your email using the OTP: <b>${verificationOTP}</b> by clicking the link below:</p>
+      <a href="${verificationLink}">Verify Email</a>
+    `,
   };
+
   await transporter.sendMail(mailOptions);
   return verificationOTP;
 }
 
-async function sendForgetPasswordLink(user) {
-  const { token } = await generateTokens(user, process.env.RESET_SECRET);
-  // Send verification mail
-  const resetPasswordLink = `http://localhost:5173/reset-password?token=${token}`;
-  // verificatio email
+function verifyEmailOtp(userid, otp) {
+  const record = otpStore[userid];
+  if (!record) return false;
+
+  if (record.expiresAt < Date.now()) {
+    delete otpStore[userid];
+    return false;
+  }
+
+  if (record.otp == otp) {
+    delete otpStore[userid];
+    return true;
+  }
+  return false;
+}
+
+async function sendForgetPasswordLink(user, token) {
+  const resetPasswordLink = `${FRONTEND_URL}/reset-password?token=${token}`;
+
   const mailOptions = {
     from: process.env.EMAIL_USER,
-    to: user?.email,
+    to: user.email,
     subject: 'Reset Password',
-    html: `<p>welcome to code with dipesh, ${user?.email}<p><b>please reset password with this link by clicking this</b><a href="${resetPasswordLink}">&nbsp;Reset Password</a>`,
+    html: `
+      <p>Hi ${user.email},</p>
+      <p>Please reset your password by clicking the link below:</p>
+      <a href="${resetPasswordLink}">Reset Password</a>
+      <p>This link expires in 1 hour.</p>
+    `,
   };
+
   await transporter.sendMail(mailOptions);
   return token;
 }
 
 module.exports = {
   sendVerificationMail,
+  verifyEmailOtp,
   sendForgetPasswordLink,
 };
