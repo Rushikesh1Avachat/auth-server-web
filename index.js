@@ -9,7 +9,7 @@ const startServer = async () => {
 
   // CORS configuration (example using Express)
   const corsOptions = {
-    origin: 'http://localhost:5173', // Your frontend URL
+    origin: process.env.PORT, // Your frontend URL
     credentials: true, // Allow credentials (cookies)
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
