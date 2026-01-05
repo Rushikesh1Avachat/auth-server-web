@@ -14,7 +14,7 @@ const startServer = async () => {
 
       const allowedOrigins = [
         'http://localhost:5173', // local dev
-        'https://auth-frontend-main-4zxz-pepah0fx8.vercel.app' // deployed frontend
+        // 'https://auth-frontend-main-4zxz-pepah0fx8.vercel.app' // deployed frontend
       ];
 
       if (allowedOrigins.includes(origin)) {
