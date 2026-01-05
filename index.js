@@ -1,8 +1,8 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const { dbConnect } = require("./config/Database");
-const { appConfig } = require("./config/AppConfig");
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const { dbConnect } = require('./config/Database');
+const { appConfig } = require('./config/AppConfig');
 
 const startServer = async () => {
   const app = express();
@@ -22,16 +22,17 @@ const startServer = async () => {
     })
   );
 
+  // Preflight
   app.options("*", cors());
 
   // DB
   await dbConnect();
 
-  // App config
+  // Routes
   appConfig(app);
 
-  // ✅ LISTEN HERE ONLY
-  const PORT = process.env.PORT || 5500;
+  // ✅ Listen on Render-assigned port
+  const PORT = process.env.PORT || 5500; // Render sets process.env.PORT
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
   });
