@@ -7,14 +7,13 @@ const { appConfig } = require('./config/AppConfig');
 const startServer = async () => {
   const app = express();
 
-  // CORS configuration
   const corsOptions = {
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // allow Postman / server-to-server
+      if (!origin) return callback(null, true);
 
       const allowedOrigins = [
-        'http://localhost:5173', // local dev
-        // 'https://auth-frontend-main-4zxz-pepah0fx8.vercel.app' // deployed frontend
+        'http://localhost:5173',
+        process.env.FRONTEND_URL,
       ];
 
       if (allowedOrigins.includes(origin)) {
@@ -23,29 +22,22 @@ const startServer = async () => {
         callback(new Error('Not allowed by CORS'));
       }
     },
-    credentials: true, // allow cookies
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
   };
 
-  // Apply CORS middleware once
   app.use(cors(corsOptions));
-
-  // Handle preflight requests once
   app.options('*', cors(corsOptions));
 
-  // Database connection
   await dbConnect();
-
-  // App Default Config
   await appConfig(app);
 
-  // Start server
-  // app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  // const PORT = process.env.PORT || 5500;
+  // app.listen(PORT, () =>
+  //   console.log(`🚀 Server running on port ${PORT}`)
+  // );
 };
 
 startServer();
-
 
 
 
