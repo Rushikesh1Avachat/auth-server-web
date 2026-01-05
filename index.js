@@ -9,7 +9,10 @@ const startServer = async () => {
 
   // CORS configuration (example using Express)
   const corsOptions = {
-    origin: 'http://localhost:5173', // Your frontend URL
+     origin: [
+      "http://localhost:5173",
+      "https://auth-frontend-main-6jtn-a47k61tb4.vercel.app",
+    ],
     credentials: true, // Allow credentials (cookies)
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
