@@ -1,30 +1,41 @@
-require('dotenv').config();
-const express = require('express');
-var cors = require('cors');
-const { dbConnect } = require('./config/Database');
-const { appConfig } = require('./config/AppConfig');
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const { dbConnect } = require("./config/Database");
+const { appConfig } = require("./config/AppConfig");
 
 const startServer = async () => {
   const app = express();
 
-  // CORS configuration (example using Express)
-  const corsOptions = {
-     origin: [
-      "http://localhost:5173",
-      "https://auth-frontend-main-gwe4.vercel.app",
-    ],
-    credentials: true, // Allow credentials (cookies)
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  };
-  app.use(cors(corsOptions));
+  // Body parser
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
 
-  // Handle preflight requests
-  app.options('*', cors(corsOptions));
+  // CORS
+  app.use(
+    cors({
+      origin: [
+        "http://localhost:5173",
+        "https://auth-frontend-main-gwe4.vercel.app",
+      ],
+      credentials: true,
+    })
+  );
 
-  // database connection
+  app.options("*", cors());
+
+  // DB
   await dbConnect();
-  // App Default Config
-  await appConfig(app);
+
+  // App config
+  appConfig(app);
+
+  // ✅ LISTEN HERE ONLY
+  const PORT = process.env.PORT || 5500;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
 };
+
 startServer();
+
