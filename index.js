@@ -1,41 +1,27 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const { dbConnect } = require("./config/Database");
-const { appConfig } = require("./config/AppConfig");
+require('dotenv').config();
+const express = require('express');
+var cors = require('cors');
+const { dbConnect } = require('./config/Database');
+const { appConfig } = require('./config/AppConfig');
 
 const startServer = async () => {
   const app = express();
 
-  // Middleware
-  app.use(express.json());
+  // CORS configuration (example using Express)
+  const corsOptions = {
+    origin: 'http://localhost:5173', // Your frontend URL
+    credentials: true, // Allow credentials (cookies)
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  };
+  app.use(cors(corsOptions));
 
-  // ✅ CORS (VERY IMPORTANT)
-  app.use(
-    cors({
-      origin: [
-        "http://localhost:5173",
-        "https://auth-frontend-main-6jtn-a47k61tb4.vercel.app",
-      ],
-      credentials: true,
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
-    })
-  );
+  // Handle preflight requests
+  app.options('*', cors(corsOptions));
 
-  app.options("*", cors());
-
-  // DB
+  // database connection
   await dbConnect();
-
-  // Routes
+  // App Default Config
   await appConfig(app);
-
-  // ✅ LISTEN (REQUIRED)
-  const PORT = process.env.PORT || 5500;
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
 };
-
 startServer();
